@@ -14,11 +14,9 @@ Not Complete
 
 This is just a pre-release version of the mod: it is not recommended that you use this on a server.
 
-Contents
-========
 
 Finite Water
-------------
+============
 
 Water that acts like real water does
 
@@ -27,7 +25,8 @@ Video of this in action: http://www.youtube.com/watch?v=bcMPIOO2vGc
 Item keys: waterplus:finite_<id>
 where <id> is the height. 20 is the maximum height (change-able)
 
-TODO:
+TODO
+----
 
 letting the water flow down hill:
 
