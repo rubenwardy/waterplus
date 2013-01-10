@@ -29,5 +29,12 @@ where <id> is the height. 20 is the maximum height (change-able)
 
 TODO:
 
+letting the water flow down hill:
+
 * water drops: on land make waterplus:finite_1
 * Make finite water turn into drops if air is below it
+
+letting it rain:
+
+* puddles
+* rain generator
