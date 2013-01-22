@@ -11,8 +11,7 @@ Code: CC-BY-SA
 
 Not Complete
 ------------
-
-This is just a pre-release version of the mod: it is not recommended that you use this on a server.
+it is not recommended that you use this on a server.
 
 
 Finite Water
@@ -28,12 +27,8 @@ where <id> is the height. 20 is the maximum height (change-able)
 TODO
 ----
 
-letting the water flow down hill:
-
-* water drops: on land make waterplus:finite_1
-* Make finite water turn into drops if air is below it
-
 letting it rain:
 
+* water drops: on land make waterplus:finite_1
 * puddles
 * rain generator
