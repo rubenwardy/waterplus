@@ -46,54 +46,59 @@ end
 
 minetest.register_abm({
 	nodenames = waterplus.finite_blocks,
-	interval = 1,
+	interval = 1/10,
 	chance = 1,
 	action = function(pos,node)
 		local node_id = getNumberFromName(node.name)
 
-		print("")
-		print("Waterplus [finite] - Calculating for "..node_id.." at "..pos.x..","..pos.y..","..pos.z)
+		dPrint("")
+		dPrint("Waterplus [finite] - Calculating for "..node_id.." at "..pos.x..","..pos.y..","..pos.z)
+		
+                local target = {x=pos.x,y=pos.y,z=pos.z}
+		target.y=target.y-1
+		dPrint(target.x..","..target.z)
+		performDrop(pos,target)
 
 		local target = {x=pos.x,y=pos.y,z=pos.z}
 		target.x=target.x+1
-		print(target.x..","..target.z)
+		dPrint(target.x..","..target.z)
 		performFlow(pos,target)
 
 		target = {x=pos.x,y=pos.y,z=pos.z}
 		target.x=target.x-1
-		print(target.x..","..target.z)
+		dPrint(target.x..","..target.z)
 		performFlow(pos,target)
 
 		target = {x=pos.x,y=pos.y,z=pos.z}
 		target.z=target.z+1
-		print(target.x..","..target.z)
+		dPrint(target.x..","..target.z)
 		performFlow(pos,target)
 		
 		target = {x=pos.x,y=pos.y,z=pos.z}
 		target.z=target.z-1
-		print(target.x..","..target.z)
+		dPrint(target.x..","..target.z)
 		performFlow(pos,target)
 
 		target = {x=pos.x,y=pos.y,z=pos.z}
 		target.x=target.x+1
 		target.z=target.z+1
-		print(target.x..","..target.z)
+		dPrint(target.x..","..target.z)
 		performFlow(pos,target)
 
 		target = {x=pos.x,y=pos.y,z=pos.z}
 		target.x=target.x+1
 		target.z=target.z-1
-		print(target.x..","..target.z)
+		dPrint(target.x..","..target.z)
 		performFlow(pos,target)
 
 		target = {x=pos.x,y=pos.y,z=pos.z}
 		target.x=target.x-1
 		target.z=target.z+1
-		print(target.x..","..target.z)
+		dPrint(target.x..","..target.z)
 		performFlow(pos,target)
 
-		print("--Calculation Complete")
-		print("")
+		dPrint("--Calculation Complete")
+		dPrint("")
 	end,
 })
 
@@ -106,14 +111,18 @@ end
 --to (pos): position of the node to check
 --id (int): the id of the node the abm is being run on
 function performFlow(from,to)
-	print("> Flow Calculation")
+	dPrint("> Flow Calculation")
 	local target = minetest.env:get_node(to).name
 	local target_id = getNumberFromName(target)
 	local source = minetest.env:get_node(from).name
 	local id = getNumberFromName(source)
+	
+	if id == nil then
+	   id = 0
+	end
 
 	if target ~= "air" and tonumber(target_id) == nil then
-		print("  > Exit on is not finite liquid")
+		dPrint("  > Exit on is not finite liquid")
 		return
 	end
 
@@ -121,25 +130,72 @@ function performFlow(from,to)
 		target_id=0
 	end
 	
-	print("  > Testing Heights: "..id.." vs "..target_id)
+	dPrint("  > Testing Heights: "..id.." vs "..target_id)
 
-	if id > target_id and id > 1 then
-		print("    > Flowing")
+	if id > target_id and id > 0 then
+		dPrint("    > Flowing")
 
 		local nh_to = "waterplus:finite_"..(target_id+1)
 		local nh_from = "waterplus:finite_"..(id-1)
 
 		if (id-1) < 1 or (target_id+1) > waterplus.finite_water_steps then
-			print("    > Exit on too high, or too low")
+			dPrint("    > Exit on too high, or too low")
 			return
 		end
 		
 		minetest.env:set_node(from,{name = nh_from})
 		minetest.env:set_node(to,{name = nh_to})
 
-		print("    > Done")
+		dPrint("    > Done")
 	end
 end
+
+--from (pos): position of the node the abm is being run on
+--to (pos): position of the node to check
+--id (int): the id of the node the abm is being run on
+function performDrop(from,to)
+	dPrint("> Drop Calculation")
+	local target = minetest.env:get_node(to).name
+	local target_id = getNumberFromName(target)
+	local source = minetest.env:get_node(from).name
+	local id = getNumberFromName(source)
+
+	if target ~= "air" and tonumber(target_id) == nil then
+		dPrint("  > Exit on is not finite liquid")
+		return
+	end
+
+	if target_id == nil then
+		target_id=0
+	end
+	
+	if id == nil then
+	   id = 0
+	end
+
+	target_id = target_id + id
+	id=0
+	
+	if target_id > waterplus.finite_water_steps then
+	   id = target_id - waterplus.finite_water_steps
+	   target_id = waterplus.finite_water_steps
+	end
+
+	local nh_to = "waterplus:finite_"..(target_id)
+	local nh_from = "waterplus:finite_"..(id)
+
+	if id == 0 or id == nil then
+	   nh_from = "air"
+	end
+
+	minetest.env:set_node(from,{name = nh_from})
+	minetest.env:set_node(to,{name = nh_to})
+	
+
+end
+
+minetest.register_alias("default:water_source","waterplus:finite_20")
+minetest.register_alias("default:water_flowing","waterplus:finite_10")
 
 minetest.register_craftitem(":bucket:bucket_water", {
 	inventory_image = "bucket_water.png",
@@ -169,3 +225,7 @@ minetest.register_craftitem(":bucket:bucket_water", {
 		return {name="bucket:bucket_empty"}
 	end
 })
+
+function dPrint(msg)
+   --print(msg)
+end
