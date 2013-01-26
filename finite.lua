@@ -4,7 +4,7 @@
 
 -- Setup Finite
 waterplus.finite_water_inc=1/(waterplus.finite_water_steps /(1+waterplus.finite_water_inc_skip))
-waterplus.finite_water_max=1.43/waterplus.finite_water_inc --how many finite water values (give a new style water effect)
+waterplus.finite_water_max=math.floor(1.43/waterplus.finite_water_inc) --how many finite water values (give a new style water effect)
 
 -- Debug log print settings
 dPrint("Water steps: "..waterplus.finite_water_steps)
