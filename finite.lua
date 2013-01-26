@@ -29,6 +29,7 @@ waterplus.register_step = function(a,height)
                        {name="default_water_source_animated.png", animation={type="vertical_frames", aspect_w=16, aspect_h=16, length=2.0}}
 		},
 		drawtype = "nodebox",
+    	alpha = WATER_ALPHA,
 		paramtype = "light",
 		walkable = false,
 		pointable = false,
@@ -62,7 +63,10 @@ for a=1, waterplus.finite_water_max do
 	end
 
 	waterplus.register_step(a,h)
+    waterplus.finite_water_max_id = a
+
 end
+waterplus.finite_water_max_name="waterplus:finite_"..waterplus.finite_water_max_id
 
 --The ABM
 minetest.register_abm({
@@ -74,11 +78,129 @@ minetest.register_abm({
 
 		dPrint("")
 		dPrint("Waterplus [finite] - Calculating for "..node_id.." at "..pos.x..","..pos.y..","..pos.z)
+
+        local upc = {x=pos.x, y=pos.y-1, z=pos.z}
+        -- recieve pressure from up
+        local pressure = 0
+        if minetest.env:get_node(upc).name == waterplus.finite_water_max_name or minetest.env:get_node(upc).name == "default:water_source" then
+            --pressure = minetest.env:get_meta(upc):get_int('pressure') or 1
+            pressure = 1
+        end
+		--print("Waterplus [finite] - Calculating for "..node_id.." at "..pos.x..","..pos.y..","..pos.z..' press='..pressure)
 		
 		local target = {x=pos.x,y=pos.y,z=pos.z}
 		target.y=target.y-1
 		dPrint(target.x..","..target.z)
-		performDrop(pos,target)
+		--if performDrop(pos,target) then return end
+		if performDrop(pos,target) then 
+            if minetest.env:get_node(upc).name == "default:water_source" then
+		        minetest.env:set_node(upc,{name = "waterplus:finite_"..waterplus.finite_water_max_id})
+            end
+            pos=target 
+        end
+
+    	local source_name = minetest.env:get_node(pos).name
+	    local source_id = getNumberFromName(source_name) or 0 
+    	local coords = {
+
+	   	   {x=pos.x-1,y=pos.y-1,z=pos.z, f=1},   -- vertical drop
+	       {x=pos.x+1,y=pos.y-1,z=pos.z, f=1},   --f= can flow or drop
+		   {x=pos.x,y=pos.y-1,z=pos.z-1, f=1},
+		   {x=pos.x,y=pos.y-1,z=pos.z+1, f=1},	
+
+	   	   {x=pos.x-1,y=pos.y,z=pos.z,h=1, f=1, wi=1}, -- h=horisontal flow
+	       {x=pos.x+1,y=pos.y,z=pos.z,h=1, f=1, wi=1}, -- wi= standard water infect
+		   {x=pos.x,y=pos.y,z=pos.z-1,h=1, f=1, wi=1},
+		   {x=pos.x,y=pos.y,z=pos.z+1,h=1, f=1, wi=1},	
+
+	   	   {x=pos.x,y=pos.y+1,z=pos.z, wi=1, u=1},   -- look up
+        }
+        local can = 0;
+        local can_water = 1;
+    	for i = 1,9 do
+	      	local name = minetest.env:get_node(coords[i]).name
+            local target_id = getNumberFromName(name)
+--print("test nei "..name ..' = '.. (target_id or 'NO'))
+	       	if coords[i].f and name == "air" then 
+                coords[i].v = waterplus.finite_water_max_id 
+                coords[i].t = 0
+                can = 1
+            elseif name=="default:water_flowing" then
+		        minetest.env:set_node(coords[i],{name = "waterplus:finite_10"})
+            elseif coords[i].wi and name=="default:water_source" and source_id<waterplus.finite_water_max_id then
+--print('convert up='..(coords[i].u or '')..' me=' .. source_id)
+		        minetest.env:set_node(coords[i],{name = "waterplus:finite_"..waterplus.finite_water_max_id})
+            elseif target_id == nil then 
+            elseif coords[i].f and target_id >= 1 then 
+                --coords[i].v = waterplus.finite_water_steps - target_id
+                coords[i].t = target_id
+                coords[i].o = target_id --original
+                if coords[i].h and pressure < 1 then
+                    if coords[i].t < source_id then
+                        can = 1
+                        coords[i].v = source_id - target_id
+                    end
+                else
+                    coords[i].v = waterplus.finite_water_max_id - target_id
+                    can = 1
+                end
+--print('test water ' .. (coords[i].wi or 'nwi') .. ' t=' .. target_id)
+                if coords[i].wi and (target_id < waterplus.finite_water_max_id or name == "air") then 
+                    can_water = 0
+--print('cant water' .. target_id)
+                end
+            end
+    	end
+        --local flowed
+
+-- twice: for drop then flow
+        for pass=0,1 do
+          while can>0 and source_id do 
+            local flowed = 0
+    	    for i = 1+(pass*4),4+(pass*4) do
+                local min = 0
+                if coords[i].h and pressure < 1 then 
+                    min = coords[i].t 
+                    if not min or min < 1 then min = 1 end
+                end
+                
+                if coords[i].v and coords[i].v > 0 and source_id > min then 
+                    coords[i].v = coords[i].v - 1
+                    source_id = source_id - 1
+                    coords[i].a = 1     -- (coords[i].a or 0) + 1
+                    coords[i].t = coords[i].t + 1
+                    flowed = 1
+--print ('flow v=' .. coords[i].v ..' t='.. coords[i].t .. ' s='..source_id)
+                    if source_id <= 1 then break end
+                end
+            end 
+            if source_id < 1 or flowed < 1 then break end
+--print ('res flv='..flowed .. ' sid='..source_id)
+          end
+        end
+        for i = 1,8 do
+            if coords[i].a and coords[i].a ~= coords[i].t then 
+--print ('repl '..(coords[i].o or 'air') ..' to' .. coords[i].t)
+		        minetest.env:set_node(coords[i],{name = "waterplus:finite_"..coords[i].t})
+            end
+        end
+        local set = "waterplus:finite_"..source_id
+        if source_id < 1 then set = "air" end
+--print('test canwater' .. can_water ..' me='.. source_id)
+        if can_water and source_id == waterplus.finite_water_max_id then set = "default:water_source"  end
+        if set ~= source_name then
+--print('src set ' .. ' was= '..source_name.. ' now '..source_id .. ' to '..set)
+            minetest.env:set_node(pos,{name = set})
+        end
+
+--[[ not used
+        if source_id < 1 then return end
+ 
+        if 1 then return end
+
+
+
+
 
 		target = {x=pos.x,y=pos.y,z=pos.z}
 		target.x=target.x+1
@@ -117,6 +239,7 @@ minetest.register_abm({
 		target.z=target.z+1
 		dPrint(target.x..","..target.z)
 		performFlow(pos,target)
+]]
 
 		dPrint("--Calculation Complete")
 		dPrint("")
@@ -130,6 +253,7 @@ end
 
 --from (pos): position of the node the abm is being run on
 --to (pos): position of the node to check
+--[[
 function performFlow(from,to)
 	dPrint("> Flow Calculation")
 	local target = minetest.env:get_node(to).name
@@ -175,6 +299,7 @@ function performFlow(from,to)
 		dPrint("    > Done")
 	end
 end
+]]
 
 --from (pos): position of the node the abm is being run on
 --to (pos): position of the node to check
@@ -193,17 +318,22 @@ function performDrop(from,to)
 	if target_id == nil then
 		target_id=0
 	end
+
+	if target_id >= waterplus.finite_water_max_id then
+        return
+	end
 	
 	if id == nil then
 	   id = 0
 	end
 
+    --dPrint('droptest '..target_id ..'+'.. id ..' maxid='.. waterplus.finite_water_max_id ..' max='.. waterplus.finite_water_max)
 	target_id = target_id + id
 	id=0
 
-	if target_id > waterplus.finite_water_max then
-	   id = target_id - waterplus.finite_water_max
-	   target_id = waterplus.finite_water_max
+	if target_id > waterplus.finite_water_max_id then
+	   id = target_id - waterplus.finite_water_max_id
+	   target_id = waterplus.finite_water_max_id
 	end
 
 	local nh_to = "waterplus:finite_"..(target_id)
@@ -213,6 +343,7 @@ function performDrop(from,to)
 	   nh_from = "air"
 	end
 
+    --print("drop ".. nh_from ..'->'..nh_to )
 	minetest.env:set_node(from,{name = nh_from})
 	minetest.env:set_node(to,{name = nh_to})
 
