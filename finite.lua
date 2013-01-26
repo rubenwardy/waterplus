@@ -64,7 +64,9 @@ for a=1, waterplus.finite_water_max do
 
 	waterplus.register_step(a,h)
     waterplus.finite_water_max_id = a
+
 end
+waterplus.finite_water_max_name="waterplus:finite_"..waterplus.finite_water_max_id
 
 --The ABM
 minetest.register_abm({
@@ -76,12 +78,26 @@ minetest.register_abm({
 
 		dPrint("")
 		dPrint("Waterplus [finite] - Calculating for "..node_id.." at "..pos.x..","..pos.y..","..pos.z)
+
+        local upc = {x=pos.x, y=pos.y-1, z=pos.z}
+        -- recieve pressure from up
+        local pressure = 0
+        if minetest.env:get_node(upc).name == waterplus.finite_water_max_name or minetest.env:get_node(upc).name == "default:water_source" then
+            --pressure = minetest.env:get_meta(upc):get_int('pressure') or 1
+            pressure = 1
+        end
+		--print("Waterplus [finite] - Calculating for "..node_id.." at "..pos.x..","..pos.y..","..pos.z..' press='..pressure)
 		
 		local target = {x=pos.x,y=pos.y,z=pos.z}
 		target.y=target.y-1
 		dPrint(target.x..","..target.z)
 		--if performDrop(pos,target) then return end
-		if performDrop(pos,target) then pos=target end
+		if performDrop(pos,target) then 
+            if minetest.env:get_node(upc).name == "default:water_source" then
+		        minetest.env:set_node(upc,{name = "waterplus:finite_"..waterplus.finite_water_max_id})
+            end
+            pos=target 
+        end
 
     	local source_name = minetest.env:get_node(pos).name
 	    local source_id = getNumberFromName(source_name) or 0 
@@ -112,14 +128,14 @@ minetest.register_abm({
             elseif name=="default:water_flowing" then
 		        minetest.env:set_node(coords[i],{name = "waterplus:finite_10"})
             elseif coords[i].wi and name=="default:water_source" and source_id<waterplus.finite_water_max_id then
---print('convert up='..(coords[i].u or ''))
+--print('convert up='..(coords[i].u or '')..' me=' .. source_id)
 		        minetest.env:set_node(coords[i],{name = "waterplus:finite_"..waterplus.finite_water_max_id})
             elseif target_id == nil then 
-            elseif coords[i].f and target_id > 1 then 
+            elseif coords[i].f and target_id >= 1 then 
                 --coords[i].v = waterplus.finite_water_steps - target_id
                 coords[i].t = target_id
                 coords[i].o = target_id --original
-                if coords[i].h then
+                if coords[i].h and pressure < 1 then
                     if coords[i].t < source_id then
                         can = 1
                         coords[i].v = source_id - target_id
@@ -128,8 +144,10 @@ minetest.register_abm({
                     coords[i].v = waterplus.finite_water_max_id - target_id
                     can = 1
                 end
-                if coords[i].wi and target_id < waterplus.finite_water_max_id then 
+--print('test water ' .. (coords[i].wi or 'nwi') .. ' t=' .. target_id)
+                if coords[i].wi and (target_id < waterplus.finite_water_max_id or name == "air") then 
                     can_water = 0
+--print('cant water' .. target_id)
                 end
             end
     	end
@@ -141,7 +159,7 @@ minetest.register_abm({
             local flowed = 0
     	    for i = 1+(pass*4),4+(pass*4) do
                 local min = 0
-                if coords[i].h then 
+                if coords[i].h and pressure < 1 then 
                     min = coords[i].t 
                     if not min or min < 1 then min = 1 end
                 end
@@ -168,6 +186,7 @@ minetest.register_abm({
         end
         local set = "waterplus:finite_"..source_id
         if source_id < 1 then set = "air" end
+--print('test canwater' .. can_water ..' me='.. source_id)
         if can_water and source_id == waterplus.finite_water_max_id then set = "default:water_source"  end
         if set ~= source_name then
 --print('src set ' .. ' was= '..source_name.. ' now '..source_id .. ' to '..set)
