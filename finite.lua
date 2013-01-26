@@ -75,12 +75,12 @@ minetest.register_abm({
 		dPrint("")
 		dPrint("Waterplus [finite] - Calculating for "..node_id.." at "..pos.x..","..pos.y..","..pos.z)
 		
-                local target = {x=pos.x,y=pos.y,z=pos.z}
+		local target = {x=pos.x,y=pos.y,z=pos.z}
 		target.y=target.y-1
 		dPrint(target.x..","..target.z)
 		performDrop(pos,target)
 
-		local target = {x=pos.x,y=pos.y,z=pos.z}
+		target = {x=pos.x,y=pos.y,z=pos.z}
 		target.x=target.x+1
 		dPrint(target.x..","..target.z)
 		performFlow(pos,target)
@@ -152,6 +152,12 @@ function performFlow(from,to)
 	
 	dPrint("  > Testing Heights: "..id.." vs "..target_id)
 
+	if id == 1 and target_id == 0 and math.random(1,4) == 1 then
+		if performDrop(from, {x=to.x,y=to.y-1,z=to.z}) then 
+			return 
+		end
+	end
+
 	if id > target_id and id > 0 then
 		dPrint("    > Flowing")
 
@@ -209,7 +215,8 @@ function performDrop(from,to)
 
 	minetest.env:set_node(from,{name = nh_from})
 	minetest.env:set_node(to,{name = nh_to})
-	
+
+	return 1
 
 end
 
