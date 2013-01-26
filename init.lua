@@ -16,3 +16,4 @@ end
 
 -- Load Modules
 dofile(minetest.get_modpath("waterplus").."/finite.lua")
+dofile(minetest.get_modpath("waterplus").."/spring.lua")
