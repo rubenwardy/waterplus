@@ -28,8 +28,8 @@ waterplus.register_step = function(a,height)
 		tiles = {
                        {name="default_water_source_animated.png", animation={type="vertical_frames", aspect_w=16, aspect_h=16, length=2.0}}
 		},
+
 		drawtype = "nodebox",
-    	alpha = WATER_ALPHA,
 		paramtype = "light",
 		walkable = false,
 		pointable = false,
