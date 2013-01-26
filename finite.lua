@@ -87,7 +87,7 @@ minetest.register_abm({
             --pressure = minetest.env:get_meta(upc):get_int('pressure') or 1
             pressure = 1
         end
-		--print("Waterplus [finite] - Calculating for "..node_id.." at "..pos.x..","..pos.y..","..pos.z..' press='..pressure)
+		dPrint("Waterplus [finite] - Calculating for "..node_id.." at "..pos.x..","..pos.y..","..pos.z..' press='..pressure)
 		
 		local target = {x=pos.x,y=pos.y,z=pos.z}
 		target.y=target.y-1
@@ -121,7 +121,7 @@ minetest.register_abm({
     	for i = 1,9 do
 	      	local name = minetest.env:get_node(coords[i]).name
             local target_id = getNumberFromName(name)
---print("test nei "..name ..' = '.. (target_id or 'NO'))
+dPrint("test nei "..name ..' = '.. (target_id or 'NO'))
 	       	if coords[i].f and name == "air" then 
                 coords[i].v = waterplus.finite_water_max_id 
                 coords[i].t = 0
@@ -129,7 +129,7 @@ minetest.register_abm({
             elseif name=="default:water_flowing" then
 		        minetest.env:set_node(coords[i],{name = "waterplus:finite_10"})
             elseif coords[i].wi and name=="default:water_source" and source_id<waterplus.finite_water_max_id then
---print('convert up='..(coords[i].u or '')..' me=' .. source_id)
+dPrint('convert up='..(coords[i].u or '')..' me=' .. source_id)
 		        minetest.env:set_node(coords[i],{name = "waterplus:finite_"..waterplus.finite_water_max_id})
             elseif target_id == nil then 
             elseif coords[i].f and target_id >= 1 then 
@@ -145,10 +145,10 @@ minetest.register_abm({
                     coords[i].v = waterplus.finite_water_max_id - target_id
                     can = 1
                 end
---print('test water ' .. (coords[i].wi or 'nwi') .. ' t=' .. target_id)
+dPrint('test water ' .. (coords[i].wi or 'nwi') .. ' t=' .. target_id)
                 if coords[i].wi and (target_id < waterplus.finite_water_max_id or name == "air") then 
                     can_water = 0
---print('cant water' .. target_id)
+dPrint('cant water' .. target_id)
                 end
             end
     	end
@@ -171,26 +171,26 @@ minetest.register_abm({
                     coords[i].a = 1     -- (coords[i].a or 0) + 1
                     coords[i].t = coords[i].t + 1
                     flowed = 1
---print ('flow v=' .. coords[i].v ..' t='.. coords[i].t .. ' s='..source_id)
+dPrint ('flow v=' .. coords[i].v ..' t='.. coords[i].t .. ' s='..source_id)
                     if source_id <= 1 then break end
                 end
             end 
             if source_id < 1 or flowed < 1 then break end
---print ('res flv='..flowed .. ' sid='..source_id)
+dPrint ('res flv='..flowed .. ' sid='..source_id)
           end
         end
         for i = 1,8 do
             if coords[i].a and coords[i].a ~= coords[i].t then 
---print ('repl '..(coords[i].o or 'air') ..' to' .. coords[i].t)
+dPrint ('repl '..(coords[i].o or 'air') ..' to' .. coords[i].t)
 		        minetest.env:set_node(coords[i],{name = "waterplus:finite_"..coords[i].t})
             end
         end
         local set = "waterplus:finite_"..source_id
         if source_id < 1 then set = "air" end
---print('test canwater' .. can_water ..' me='.. source_id)
+dPrint('test canwater' .. can_water ..' me='.. source_id)
         if can_water and source_id == waterplus.finite_water_max_id then set = "default:water_source"  end
         if set ~= source_name then
---print('src set ' .. ' was= '..source_name.. ' now '..source_id .. ' to '..set)
+dPrint('src set ' .. ' was= '..source_name.. ' now '..source_id .. ' to '..set)
             minetest.env:set_node(pos,{name = set})
         end
 
