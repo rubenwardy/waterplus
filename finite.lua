@@ -2,14 +2,27 @@
 -- By Rubenwardy
 -- License: cc-by-sa
 
+-- Setup Finite
+waterplus.finite_water_inc=1/(waterplus.finite_water_steps /(1+waterplus.finite_water_inc_skip))
+waterplus.finite_water_max=1.43/waterplus.finite_water_inc --how many finite water values (give a new style water effect)
 
--- Settings
-waterplus={}
-waterplus.finite_water_steps=20
+-- Debug log print settings
+dPrint("Water steps: "..waterplus.finite_water_steps)
+dPrint("Water max: "..waterplus.finite_water_max)
+dPrint("Water inc: "..waterplus.finite_water_inc)
+dPrint("Water inc_skip: "..waterplus.finite_water_inc_skip)
 
--- List of blocks
+-- Locals
+local h=waterplus.finite_water_inc
+local c=1
+
+dPrint("C: "..c)
+dPrint("H: "..h)
+
+-- Block create function
 waterplus.finite_blocks = {}
-waterplus.register_step = function(a)
+waterplus.register_step = function(a,height)
+	print("Register finite block "..a.." with a height of "..height)
 	minetest.register_node("waterplus:finite_"..a, {
 		description = "Finite Water "..a,
 		tiles = {
@@ -26,7 +39,7 @@ waterplus.register_step = function(a)
 		node_box = {
 			type="fixed",
 			fixed={
-				{-0.5,-0.5,-0.5,0.5,((1/waterplus.finite_water_steps)*a-0.5),0.5},
+				{-0.5,-0.5,-0.5,0.5,height-0.5,0.5},
 			},
 		},
 	})
@@ -39,11 +52,19 @@ waterplus.register_step = function(a)
 	)
 end
 
-for a=1, waterplus.finite_water_steps do
-	waterplus.register_step(a)
+--Create blocks
+for a=1, waterplus.finite_water_max do
+	c=c+1
+	
+	if c>waterplus.finite_water_inc_skip then
+        	c = 0
+        	h = h + waterplus.finite_water_inc
+	end
+
+	waterplus.register_step(a,h)
 end
 
-
+--The ABM
 minetest.register_abm({
 	nodenames = waterplus.finite_blocks,
 	interval = 1/10,
@@ -109,7 +130,6 @@ end
 
 --from (pos): position of the node the abm is being run on
 --to (pos): position of the node to check
---id (int): the id of the node the abm is being run on
 function performFlow(from,to)
 	dPrint("> Flow Calculation")
 	local target = minetest.env:get_node(to).name
@@ -138,7 +158,7 @@ function performFlow(from,to)
 		local nh_to = "waterplus:finite_"..(target_id+1)
 		local nh_from = "waterplus:finite_"..(id-1)
 
-		if (id-1) < 1 or (target_id+1) > waterplus.finite_water_steps then
+		if (id-1) < 1 or (target_id+1) > waterplus.finite_water_max then
 			dPrint("    > Exit on too high, or too low")
 			return
 		end
@@ -152,7 +172,6 @@ end
 
 --from (pos): position of the node the abm is being run on
 --to (pos): position of the node to check
---id (int): the id of the node the abm is being run on
 function performDrop(from,to)
 	dPrint("> Drop Calculation")
 	local target = minetest.env:get_node(to).name
@@ -175,10 +194,10 @@ function performDrop(from,to)
 
 	target_id = target_id + id
 	id=0
-	
-	if target_id > waterplus.finite_water_steps then
-	   id = target_id - waterplus.finite_water_steps
-	   target_id = waterplus.finite_water_steps
+
+	if target_id > waterplus.finite_water_max then
+	   id = target_id - waterplus.finite_water_max
+	   target_id = waterplus.finite_water_max
 	end
 
 	local nh_to = "waterplus:finite_"..(target_id)
@@ -225,7 +244,3 @@ minetest.register_craftitem(":bucket:bucket_water", {
 		return {name="bucket:bucket_empty"}
 	end
 })
-
-function dPrint(msg)
-   --print(msg)
-end
