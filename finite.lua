@@ -34,6 +34,7 @@ waterplus.register_step = function(a,height)
 		walkable = false,
 		pointable = false,
 		diggable = false,
+		climbable = true,
 		buildable_to = true,
 		post_effect_color = {a=64, r=100, g=100, b=200},
 		groups = {water=3,finite_water=((a/waterplus.finite_water_steps)*100), puts_out_fire=1},
