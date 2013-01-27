@@ -178,7 +178,7 @@ dPrint('cant water ' .. target_id .. ' n='..name)
                     --end
                     if not min or min < 1 then min = 1 end
                 end
---print ('flowto '.. (coords[i].v or'NO') .. ' s='.. source_id .. ' min='.. min)                
+dPrint ('flowto '.. (coords[i].v or'NO') .. ' s='.. source_id .. ' min='.. min)                
                 -- perform one-level flow 
                 if coords[i].v and coords[i].v > 0 and source_id > min then 
                     coords[i].v = coords[i].v - 1
@@ -395,8 +395,8 @@ function pressure_get(pos, recalc)
     return p;
 end
 
-minetest.register_alias("default:water_source","waterplus:finite_20")
-minetest.register_alias("default:water_flowing","waterplus:finite_10")
+--minetest.register_alias("default:water_source","waterplus:finite_20")
+--minetest.register_alias("default:water_flowing","waterplus:finite_10")
 
 minetest.register_abm({
 	nodenames = {"default:water_flowing"},
