@@ -191,7 +191,7 @@ dPrint ('res flv='..flowed .. ' sid='..source_id)
           end
         end
         for i = 1,9 do
-            if coords[i].a and coords[i].a ~= coords[i].t then 
+            if coords[i].a and coords[i].o ~= coords[i].t then 
 dPrint ('repl '..(coords[i].o or 'air') ..' to' .. coords[i].t)
 		        minetest.env:set_node(coords[i],{name = "waterplus:finite_"..coords[i].t})
             end
