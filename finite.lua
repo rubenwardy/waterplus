@@ -137,6 +137,7 @@ dPrint('convert up='..(coords[i].u or '')..' me=' .. source_id)
             if coords[i].f and name == "air" then 
                 coords[i].v = waterplus.finite_water_max_id 
                 coords[i].t = 0
+                can = 1
             --elseif name=="default:water_flowing" then
             --    minetest.env:set_node(coords[i],{name = "waterplus:finite_10"})
                 --high_nearby = math.max(high_nearby, 10);
@@ -153,16 +154,17 @@ dPrint('convert up='..(coords[i].u or '')..' me=' .. source_id)
                     coords[i].v = waterplus.finite_water_max_id - target_id
                 end
 dPrint('test water ' .. (coords[i].wi or 'nwi') .. ' t=' .. target_id)
-                if coords[i].iw and (target_id < waterplus.finite_water_max_id-1 or name == "air") then 
-                    -- do not convert to standard water if flow possible
-                    can_water = 0
-dPrint('cant water ' .. target_id .. ' n='..name)
-                end
                 if coords[i].v and coords[i].v > 0 then can = 1 end
                 --high_nearby = math.max(high_nearby, target_id);
                 if coords[i].h and coords[i].t >= waterplus.finite_water_max_id then can_max = can_max + 1 end
             end
-    	end
+            if coords[i].h and coords[i].iw and ((target_id and target_id < waterplus.finite_water_max_id-1) or name == "air") then 
+                -- do not convert to standard water if flow possible
+                can_water = 0
+dPrint('cant water ' .. (target_id or 0) .. ' n='..name)
+            end
+
+        end
 
 -- step2: perform flow and drop  twice: first for drop then flow if something rest
         for pass=0,1 do
@@ -181,7 +183,7 @@ dPrint('cant water ' .. target_id .. ' n='..name)
                     --end
                     if not min or min < 1 then min = 1 end
                 end
-dPrint ('flowto p='..pass..' i='..i.. (coords[i].v or'NO') .. ' s='.. source_id .. ' min='.. min)                
+dPrint ('flowto p='..pass..' i='..i.. ' v='..(coords[i].v or'NO') .. ' s='.. source_id .. ' min='.. min)                
                 -- perform one-level flow 
                 if coords[i].v and coords[i].v > 0 and source_id > min then 
                     coords[i].v = coords[i].v - 1
@@ -213,15 +215,18 @@ dPrint ('repl '..(coords[i].o or 'air') ..' to' .. coords[i].t)
 		        minetest.env:set_node(coords[i],{name = "waterplus:finite_"..coords[i].t})
             end
         end
-        local set = "waterplus:finite_"..source_id
-        if source_id < 1 then set = "air" end
-        -- can_max - cheat for decreasing finite blocks at top of ocean
+        --canmax: trick for reduce finite blocks, add one if cant flow and max nearby 21+22 = 22+22 
 dPrint('canmax=' .. can_max..' s='..source_id.. ' cw='..can_water)
         if can_max >= 1 and source_id == waterplus.finite_water_max_id - 1 then 
         --print('canmax '..source_id)
-        source_id = waterplus.finite_water_max_id end
+            source_id = waterplus.finite_water_max_id 
+        end
+
+        local set = "waterplus:finite_"..source_id
+        if source_id < 1 then set = "air" end
+        -- can_max - cheat for decreasing finite blocks at top of ocean
 dPrint('test canwater' .. can_water ..' me='.. source_id)
-        if can_water and source_id == waterplus.finite_water_max_id then
+        if can_water>0 and source_id == waterplus.finite_water_max_id then
             set = "default:water_source"
         end
         if set ~= source_name then
