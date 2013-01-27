@@ -4,7 +4,7 @@ Water Plus
 A mod that adds finite water, among other things
 
 * Project started by: Andrew "Rubenwardy" Ward.
-* And helped develop by: proller
+* And also developed by: proller
 
 License
 -------
