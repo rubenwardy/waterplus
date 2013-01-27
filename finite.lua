@@ -119,6 +119,7 @@ minetest.register_abm({
         local can = 0
         local can_water = 1
         local can_max = 0
+        local infected = 0
         --local high_nearby = 0;
         -- step1: calculate possibility of flow with volumes
         for i = 1,9 do
@@ -126,11 +127,12 @@ minetest.register_abm({
             coords[i].n = name
             local target_id = getNumberFromName(name)
 dPrint("test nei "..name ..' = '.. (target_id or 'NO'))
-            if coords[i].wi and name=="default:water_source" and source_id<waterplus.finite_water_max_id then
+            if infected < 1 and coords[i].wi and name=="default:water_source" and source_id<waterplus.finite_water_max_id then
 dPrint('convert up='..(coords[i].u or '')..' me=' .. source_id)
                 minetest.env:set_node(coords[i],{name = waterplus.finite_water_max_name})
                 target_id = waterplus.finite_water_max_id
                 --high_nearby = waterplus.finite_water_max_id
+                infected = infected + 1
             end
             if coords[i].f and name == "air" then 
                 coords[i].v = waterplus.finite_water_max_id 
@@ -151,14 +153,14 @@ dPrint('convert up='..(coords[i].u or '')..' me=' .. source_id)
                     coords[i].v = waterplus.finite_water_max_id - target_id
                 end
 dPrint('test water ' .. (coords[i].wi or 'nwi') .. ' t=' .. target_id)
-                if coords[i].iw and (target_id < waterplus.finite_water_max_id or name == "air") then 
+                if coords[i].iw and (target_id < waterplus.finite_water_max_id-1 or name == "air") then 
                     -- do not convert to standard water if flow possible
                     can_water = 0
 dPrint('cant water ' .. target_id .. ' n='..name)
                 end
                 if coords[i].v and coords[i].v > 0 then can = 1 end
                 --high_nearby = math.max(high_nearby, target_id);
-                if coords[i].h and target_id >= waterplus.finite_water_max_id then can_max = can_max + 1 end
+                if coords[i].h and coords[i].t >= waterplus.finite_water_max_id then can_max = can_max + 1 end
             end
     	end
 
@@ -171,6 +173,7 @@ dPrint('cant water ' .. target_id .. ' n='..name)
                 --print('testpress ' .. (coords[i].h or 'vertical') .. ' p='.. pressure)
                 if coords[i].h and pressure <= 1 then 
                     min = coords[i].t or 0
+                    min = min + 1
                     -- trick: flow more if have higher nearby watre level: bad idea for now
                     --if high_nearby > source_id then 
                         --min = math.ceil((high_nearby + source_id + min)/3)
@@ -178,15 +181,15 @@ dPrint('cant water ' .. target_id .. ' n='..name)
                     --end
                     if not min or min < 1 then min = 1 end
                 end
-dPrint ('flowto '.. (coords[i].v or'NO') .. ' s='.. source_id .. ' min='.. min)                
+dPrint ('flowto p='..pass..' i='..i.. (coords[i].v or'NO') .. ' s='.. source_id .. ' min='.. min)                
                 -- perform one-level flow 
                 if coords[i].v and coords[i].v > 0 and source_id > min then 
                     coords[i].v = coords[i].v - 1
                     source_id = source_id - 1
-                    coords[i].a = 1     -- (coords[i].a or 0) + 1
+                    coords[i].a = (coords[i].a or 0) + 1
                     coords[i].t = coords[i].t + 1
                     flowed = 1
-dPrint ('flow v=' .. coords[i].v ..' t='.. coords[i].t .. ' s='..source_id.. ' min='..min)
+dPrint('flow p='..pass..' i='..i.. ' v=' .. coords[i].v ..' t='.. coords[i].t .. ' s='..source_id.. ' min='..min .. ' fl='..coords[i].a)
                     if source_id < 1 then break end
                 end
             end 
@@ -214,7 +217,9 @@ dPrint ('repl '..(coords[i].o or 'air') ..' to' .. coords[i].t)
         if source_id < 1 then set = "air" end
         -- can_max - cheat for decreasing finite blocks at top of ocean
 dPrint('canmax=' .. can_max..' s='..source_id.. ' cw='..can_water)
-        if can_max > 1 and source_id == waterplus.finite_water_max_id - 1 then source_id = waterplus.finite_water_max_id end
+        if can_max >= 1 and source_id == waterplus.finite_water_max_id - 1 then 
+        --print('canmax '..source_id)
+        source_id = waterplus.finite_water_max_id end
 dPrint('test canwater' .. can_water ..' me='.. source_id)
         if can_water and source_id == waterplus.finite_water_max_id then
             set = "default:water_source"
