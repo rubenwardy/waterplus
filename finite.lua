@@ -82,10 +82,11 @@ minetest.register_abm({
 
         local upc = {x=pos.x, y=pos.y+1, z=pos.z}
         -- recieve pressure from up
-        local pressure = 0
+        local pressure = 1
         if minetest.env:get_node(upc).name == waterplus.finite_water_max_name or minetest.env:get_node(upc).name == "default:water_source" then
             --pressure = minetest.env:get_meta(upc):get_int('pressure') or 1
-            pressure = 1
+            --pressure = pressure_get(pos)
+            pressure = 2
         end
 		dPrint("Waterplus [finite] - Calculating for "..node_id.." at "..pos.x..","..pos.y..","..pos.z..' press='..pressure)
 		
@@ -108,53 +109,56 @@ minetest.register_abm({
             {x=pos.x,y=pos.y-1,z=pos.z-1, f=1},
             {x=pos.x,y=pos.y-1,z=pos.z+1, f=1},
 
-            {x=pos.x-1,y=pos.y,z=pos.z,h=1, f=1, wi=1}, -- h=horisontal flow
-            {x=pos.x+1,y=pos.y,z=pos.z,h=1, f=1, wi=1}, -- wi= standard water infect
-            {x=pos.x,y=pos.y,z=pos.z-1,h=1, f=1, wi=1},
-            {x=pos.x,y=pos.y,z=pos.z+1,h=1, f=1, wi=1},	
+            {x=pos.x-1,y=pos.y,z=pos.z,h=1, f=1, wi=1, iw=1,}, -- h=horisontal flow
+            {x=pos.x+1,y=pos.y,z=pos.z,h=1, f=1, wi=1, iw=1,}, -- wi= standard water infect
+            {x=pos.x,y=pos.y,z=pos.z-1,h=1, f=1, wi=1, iw=1,}, -- iw= water infects us
+            {x=pos.x,y=pos.y,z=pos.z+1,h=1, f=1, wi=1, iw=1,},	
 
-            {x=pos.x,y=pos.y+1,z=pos.z, wi=1, u=1},   -- look up
+            {x=pos.x,y=pos.y+1,z=pos.z, wi=1, u=1, b=1,},   -- look up  b= bubble up 
         }
-        local can = 0;
-        local can_water = 1;
+        local can = 0
+        local can_water = 1
+        local can_max = 0
         --local high_nearby = 0;
         -- step1: calculate possibility of flow with volumes
         for i = 1,9 do
             local name = minetest.env:get_node(coords[i]).name
+            coords[i].n = name
             local target_id = getNumberFromName(name)
 dPrint("test nei "..name ..' = '.. (target_id or 'NO'))
+            if coords[i].wi and name=="default:water_source" and source_id<waterplus.finite_water_max_id then
+dPrint('convert up='..(coords[i].u or '')..' me=' .. source_id)
+                minetest.env:set_node(coords[i],{name = waterplus.finite_water_max_name})
+                target_id = waterplus.finite_water_max_id
+                --high_nearby = waterplus.finite_water_max_id
+            end
             if coords[i].f and name == "air" then 
                 coords[i].v = waterplus.finite_water_max_id 
                 coords[i].t = 0
-                can = 1
-            elseif name=="default:water_flowing" then
-                minetest.env:set_node(coords[i],{name = "waterplus:finite_10"})
+            --elseif name=="default:water_flowing" then
+            --    minetest.env:set_node(coords[i],{name = "waterplus:finite_10"})
                 --high_nearby = math.max(high_nearby, 10);
-            elseif coords[i].wi and name=="default:water_source" and source_id<waterplus.finite_water_max_id then
-dPrint('convert up='..(coords[i].u or '')..' me=' .. source_id)
-                minetest.env:set_node(coords[i],{name = waterplus.finite_water_max_name})
-                --high_nearby = waterplus.finite_water_max_id
             elseif target_id == nil then 
             elseif coords[i].f and target_id >= 1 then 
                 --coords[i].v = waterplus.finite_water_steps - target_id
                 coords[i].t = target_id
                 coords[i].o = target_id --original
-                if coords[i].h and pressure < 1 then
+                if coords[i].h then --and pressure <= 1
                     if coords[i].t < source_id then
                         coords[i].v = source_id - target_id
-                        can = 1
                     end
                 else
                     coords[i].v = waterplus.finite_water_max_id - target_id
-                    can = 1
                 end
 dPrint('test water ' .. (coords[i].wi or 'nwi') .. ' t=' .. target_id)
-                if coords[i].wi and (target_id < waterplus.finite_water_max_id or name == "air") then 
+                if coords[i].iw and (target_id < waterplus.finite_water_max_id or name == "air") then 
                     -- do not convert to standard water if flow possible
                     can_water = 0
-dPrint('cant water ' .. target_id)
+dPrint('cant water ' .. target_id .. ' n='..name)
                 end
+                if coords[i].v and coords[i].v > 0 then can = 1 end
                 --high_nearby = math.max(high_nearby, target_id);
+                if coords[i].h and target_id >= waterplus.finite_water_max_id then can_max = can_max + 1 end
             end
     	end
 
@@ -165,7 +169,7 @@ dPrint('cant water ' .. target_id)
             for i = 1+(pass*4),4+(pass*4) do
                 local min = 0
                 --print('testpress ' .. (coords[i].h or 'vertical') .. ' p='.. pressure)
-                if coords[i].h and pressure < 1 then 
+                if coords[i].h and pressure <= 1 then 
                     min = coords[i].t or 0
                     -- trick: flow more if have higher nearby watre level: bad idea for now
                     --if high_nearby > source_id then 
@@ -191,6 +195,16 @@ dPrint ('res flv='..flowed .. ' sid='..source_id)
           end
         end
         for i = 1,9 do
+            -- bubble fast up
+            if coords[i].b and coords[i].n == "default:water_source" then 
+--dPrint('r1' .. "waterplus:finite_".."waterplus:finite_"..source_id)
+                local set = "waterplus:finite_"..source_id
+                if source_id < 1 then set = "air" end
+		        minetest.env:set_node(coords[i],{name = set})
+                source_id = waterplus.finite_water_max_id
+                can_water = 1
+                --print ('bubble up '..source_id)
+            end
             if coords[i].a and coords[i].o ~= coords[i].t then 
 dPrint ('repl '..(coords[i].o or 'air') ..' to' .. coords[i].t)
 		        minetest.env:set_node(coords[i],{name = "waterplus:finite_"..coords[i].t})
@@ -198,8 +212,13 @@ dPrint ('repl '..(coords[i].o or 'air') ..' to' .. coords[i].t)
         end
         local set = "waterplus:finite_"..source_id
         if source_id < 1 then set = "air" end
+        -- can_max - cheat for decreasing finite blocks at top of ocean
+dPrint('canmax=' .. can_max..' s='..source_id.. ' cw='..can_water)
+        if can_max > 1 and source_id == waterplus.finite_water_max_id - 1 then source_id = waterplus.finite_water_max_id end
 dPrint('test canwater' .. can_water ..' me='.. source_id)
-        if can_water and source_id == waterplus.finite_water_max_id then set = "default:water_source"  end
+        if can_water and source_id == waterplus.finite_water_max_id then
+            set = "default:water_source"
+        end
         if set ~= source_name then
 dPrint('src set ' .. ' was= '..source_name.. ' now '..source_id .. ' to '..set)
             minetest.env:set_node(pos,{name = set})
@@ -363,8 +382,35 @@ function performDrop(from,to)
 
 end
 
+-- bug with set-get value, not used
+function pressure_get(pos, recalc)
+    local node = minetest.env:get_node(pos)
+    if not (node.name == waterplus.finite_water_max_name or node.name == "default:water_source") then return 0 end
+    local p = minetest.env:get_meta(pos):get_int('pressure') or 0
+    --print('press read=' .. p .. ' xyz='..pos.x..","..pos.y..","..pos.z)
+    if p > 0 and not recalc then return p end
+    p = 1 + pressure_get({x=pos.x,y=pos.y+1,z=pos.z})
+    minetest.env:get_meta(pos):set_int('pressure', p)
+    --print('press save=' .. p ..' xyz='..pos.x..","..pos.y..","..pos.z)
+    return p;
+end
+
 minetest.register_alias("default:water_source","waterplus:finite_20")
 minetest.register_alias("default:water_flowing","waterplus:finite_10")
+
+minetest.register_abm({
+	nodenames = {"default:water_flowing"},
+	interval = 1,
+	chance = 1,
+	action = function(pos,node)
+        local level = (waterplus.finite_water_max_id / (node.param2 or 1)) * 15
+        if level < 1 then level = 1 end
+        if level > waterplus.finite_water_max_id-3 then level = waterplus.finite_water_max_id-3 end
+		dPrint("Waterplus [finite] -  transforming float water to finite ".." at "..pos.x..","..pos.y..","..pos.z .. ' p1='.. node.param1 .. ' p2='.. node.param2 .. '  level='.. level)
+        minetest.env:set_node(pos,{name = "waterplus:finite_"..level, param1=node.param1, param2=node.param2})
+    end
+})
+
 
 minetest.register_craftitem(":bucket:bucket_water", {
 	inventory_image = "bucket_water.png",
