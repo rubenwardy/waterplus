@@ -403,7 +403,7 @@ minetest.register_abm({
 	interval = 1,
 	chance = 1,
 	action = function(pos,node)
-        local level = (waterplus.finite_water_max_id / (node.param2 or 1)) * 15
+        local level = math.floor((node.param2/15)*waterplus.finite_water_max_id)
         if level < 1 then level = 1 end
         if level > waterplus.finite_water_max_id-3 then level = waterplus.finite_water_max_id-3 end
 		dPrint("Waterplus [finite] -  transforming float water to finite ".." at "..pos.x..","..pos.y..","..pos.z .. ' p1='.. node.param1 .. ' p2='.. node.param2 .. '  level='.. level)
