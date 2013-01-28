@@ -104,10 +104,10 @@ minetest.register_abm({
         local source_id = getNumberFromName(source_name) or 0 
         local coords = {
 
-            {x=pos.x-1,y=pos.y-1,z=pos.z, f=1},         -- vertical drop
-            {x=pos.x+1,y=pos.y-1,z=pos.z, f=1},         -- f= can flow or drop
-            {x=pos.x,y=pos.y-1,z=pos.z-1, f=1},
-            {x=pos.x,y=pos.y-1,z=pos.z+1, f=1},
+            {x=pos.x-1,y=pos.y-1,z=pos.z, f=1, d=1,},         -- vertical drop
+            {x=pos.x+1,y=pos.y-1,z=pos.z, f=1, d=1,},         -- f= can flow or drop
+            {x=pos.x,y=pos.y-1,z=pos.z-1, f=1, d=1,},         -- d= can drop
+            {x=pos.x,y=pos.y-1,z=pos.z+1, f=1, d=1,},
 
             {x=pos.x-1,y=pos.y,z=pos.z,h=1, f=1, wi=1, iw=1,}, -- h=horisontal flow
             {x=pos.x+1,y=pos.y,z=pos.z,h=1, f=1, wi=1, iw=1,}, -- wi= standard water infect
@@ -119,6 +119,7 @@ minetest.register_abm({
         local can = 0
         local can_water = 1
         local can_max = 0
+        local can_min = 0
         local infected = 0
         --local high_nearby = 0;
         -- step1: calculate possibility of flow with volumes
@@ -158,6 +159,8 @@ dPrint('test water ' .. (coords[i].wi or 'nwi') .. ' t=' .. target_id)
                 --high_nearby = math.max(high_nearby, target_id);
                 if coords[i].h and coords[i].t >= waterplus.finite_water_max_id then can_max = can_max + 1 end
             end
+            if coords[i].d and (name=="default:water_source") then can_min = can_min + 1 end
+--print('cmt me=' .. source_id .. ' to='.. (coords[i].d or 'no') .. ' n=' .. name .. ' r=' .. can_min )
             if coords[i].h and coords[i].iw and ((target_id and target_id < waterplus.finite_water_max_id-1) or name == "air") then 
                 -- do not convert to standard water if flow possible
                 can_water = 0
@@ -220,6 +223,12 @@ dPrint('canmax=' .. can_max..' s='..source_id.. ' cw='..can_water)
         if can_max >= 1 and source_id == waterplus.finite_water_max_id - 1 then 
         --print('canmax '..source_id)
             source_id = waterplus.finite_water_max_id 
+        end
+        --canmin: remove last level if down nearby is full 1+22 = 22
+--print('canmin=' .. can_min..' s='..source_id.. ' cw='..can_water)
+        if can_min >= 1 and source_id == 1 then 
+        --print('canmin '..source_id)
+            source_id = 0
         end
 
         local set = "waterplus:finite_"..source_id
