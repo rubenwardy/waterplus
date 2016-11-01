@@ -36,6 +36,12 @@ waterplus.register_step = function(a,height)
 		diggable = false,
 		climbable = true,
 		buildable_to = true,
+		liquid_viscosity = 1, --added water-like viscosity
+		liquidtype = "source",
+		liquid_alternative_flowing = "waterplus:finite_"..a,
+		liquid_alternative_source = "waterplus:finite_"..a,
+		liquid_renewable = false,
+		liquid_range = 0,
 		post_effect_color = {a=64, r=100, g=100, b=200},
 		groups = {water=3,finite_water=((a/waterplus.finite_water_steps)*100), puts_out_fire=1},
 		node_box = {
